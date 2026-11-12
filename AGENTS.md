@@ -13,6 +13,20 @@
 - Ask for approval before significant architecture changes.
 - Proceed directly with small, well-defined tasks.
 
+## Project Documentation
+
+- docs/DESIGN.md contains the approved game design
+  and gameplay requirements.
+- Before implementing or modifying gameplay mechanics,
+  read the relevant sections of docs/DESIGN.md.
+- Treat approved design requirements as the source of truth.
+- Do not implement features listed under Future Features
+  unless explicitly requested.
+- If a requirement is unclear or missing, identify the
+  ambiguity rather than inventing gameplay rules.
+- Report any conflicts between the design and existing code.
+
+
 ## Verification
 - Run available tests after making changes.
 - Review changes for unintended modifications.
