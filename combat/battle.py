@@ -1,7 +1,7 @@
 """Battle orchestration: turn order, targeting, and win/lose checks."""
 
 from enum import Enum
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 from combat.combat import InvalidActionError, resolve_attack
 from combat.models import Character, Team
@@ -70,6 +70,30 @@ class Battle:
 
     def living_enemies(self) -> List[Character]:
         return [c for c in self.enemies if c.is_alive]
+
+    def snapshot(self) -> Dict[str, Any]:
+        """Return a read-only copy of the current battle state for debugging.
+
+        Does not modify battle state. The returned structure contains plain
+        values only (no live Character references).
+        """
+        current = self.current_actor()
+        return {
+            "round_number": self.round_number,
+            "outcome": self.outcome.value,
+            "current_actor": current.name if current is not None else None,
+            "players": [self._character_snapshot(c) for c in self.players],
+            "enemies": [self._character_snapshot(c) for c in self.enemies],
+        }
+
+    @staticmethod
+    def _character_snapshot(character: Character) -> Dict[str, Any]:
+        return {
+            "name": character.name,
+            "hp": character.hp,
+            "attack": character.attack,
+            "alive": character.is_alive,
+        }
 
     def attack(self, attacker: Character, target: Character) -> None:
         """Resolve one attack for the current actor against a valid target.

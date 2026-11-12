@@ -351,6 +351,91 @@ class BattleTerminationTests(unittest.TestCase):
         self.assertFalse(battle.enemies[0].is_alive)
 
 
+class BattleSnapshotTests(unittest.TestCase):
+    def test_snapshot_contains_expected_fields(self) -> None:
+        battle = create_default_battle()
+        data = battle.snapshot()
+
+        self.assertEqual(data["round_number"], 1)
+        self.assertEqual(data["outcome"], "ongoing")
+        self.assertEqual(data["current_actor"], "Player 1")
+        self.assertEqual(
+            data["players"],
+            [
+                {"name": "Player 1", "hp": 30, "attack": 10, "alive": True},
+                {"name": "Player 2", "hp": 25, "attack": 12, "alive": True},
+                {"name": "Player 3", "hp": 35, "attack": 8, "alive": True},
+            ],
+        )
+        self.assertEqual(
+            data["enemies"],
+            [
+                {"name": "Enemy 1", "hp": 25, "attack": 7, "alive": True},
+                {"name": "Enemy 2", "hp": 25, "attack": 7, "alive": True},
+            ],
+        )
+
+    def test_snapshot_reflects_mid_battle_state(self) -> None:
+        battle = _make_battle()
+        battle.attack(battle.players[0], battle.enemies[0])
+        data = battle.snapshot()
+
+        self.assertEqual(data["round_number"], 1)
+        self.assertEqual(data["outcome"], "ongoing")
+        self.assertEqual(data["current_actor"], "Player 2")
+        self.assertEqual(data["enemies"][0]["hp"], 15)
+        self.assertTrue(data["enemies"][0]["alive"])
+
+    def test_snapshot_current_actor_none_when_battle_over(self) -> None:
+        battle = _make_battle(
+            player_stats=((30, 25), (25, 25), (35, 8)),
+            enemy_stats=((25, 7), (25, 7)),
+        )
+        battle.attack(battle.players[0], battle.enemies[0])
+        battle.attack(battle.players[1], battle.enemies[1])
+
+        data = battle.snapshot()
+        self.assertEqual(data["outcome"], "victory")
+        self.assertIsNone(data["current_actor"])
+        self.assertFalse(data["enemies"][0]["alive"])
+        self.assertFalse(data["enemies"][1]["alive"])
+
+    def test_snapshot_does_not_modify_battle_state(self) -> None:
+        battle = _make_battle()
+        before = (
+            battle.round_number,
+            battle.outcome,
+            battle.current_actor(),
+            [c.hp for c in battle.players],
+            [c.hp for c in battle.enemies],
+        )
+        battle.snapshot()
+        after = (
+            battle.round_number,
+            battle.outcome,
+            battle.current_actor(),
+            [c.hp for c in battle.players],
+            [c.hp for c in battle.enemies],
+        )
+        self.assertEqual(before, after)
+
+    def test_snapshot_is_detached_from_live_characters(self) -> None:
+        battle = _make_battle()
+        data = battle.snapshot()
+
+        data["players"][0]["hp"] = 1
+        data["enemies"][0]["alive"] = False
+        data["round_number"] = 99
+        data["outcome"] = "defeat"
+        data["current_actor"] = "Nobody"
+
+        self.assertEqual(battle.players[0].hp, 30)
+        self.assertTrue(battle.enemies[0].is_alive)
+        self.assertEqual(battle.round_number, 1)
+        self.assertEqual(battle.outcome, BattleOutcome.ONGOING)
+        self.assertIs(battle.current_actor(), battle.players[0])
+
+
 class DeterminismTests(unittest.TestCase):
     def test_same_actions_produce_same_result(self) -> None:
         def run() -> tuple:
