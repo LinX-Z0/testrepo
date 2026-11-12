@@ -21,10 +21,14 @@ class CharacterModelTests(unittest.TestCase):
         fighter = Character("Player 1", hp=0, attack=5, team=Team.PLAYER)
         self.assertFalse(fighter.is_alive)
 
-    def test_defeated_when_hp_negative(self) -> None:
-        # HP should not normally go negative, but is_alive uses HP > 0.
-        fighter = Character("Player 1", hp=-1, attack=5, team=Team.PLAYER)
+    def test_zero_hp_allowed_for_defeated_character(self) -> None:
+        fighter = Character("Player 1", hp=0, attack=5, team=Team.PLAYER)
+        self.assertEqual(fighter.hp, 0)
         self.assertFalse(fighter.is_alive)
+
+    def test_negative_starting_hp_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            Character("Player 1", hp=-1, attack=5, team=Team.PLAYER)
 
     def test_negative_attack_rejected(self) -> None:
         with self.assertRaises(ValueError):

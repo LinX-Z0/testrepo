@@ -40,9 +40,6 @@ class Battle:
         self.players: List[Character] = list(players)
         self.enemies: List[Character] = list(enemies)
         self._participants: List[Character] = self.players + self.enemies
-        names = [c.name for c in self._participants]
-        if len(set(names)) != 5:
-            raise ValueError("Character names must be unique")
 
         # Fixed order: players[0..2], then enemies[0..1].
         self._turn_order: List[Character] = list(self._participants)

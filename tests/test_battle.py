@@ -38,6 +38,72 @@ class DefaultBattleTests(unittest.TestCase):
         self.assertIs(battle.current_actor(), battle.players[0])
 
 
+class BattleConstructionTests(unittest.TestCase):
+    def test_duplicate_names_are_allowed(self) -> None:
+        players = [
+            Character("Fighter", hp=30, attack=10, team=Team.PLAYER),
+            Character("Fighter", hp=25, attack=12, team=Team.PLAYER),
+            Character("Support", hp=35, attack=8, team=Team.PLAYER),
+        ]
+        enemies = [
+            Character("Fighter", hp=25, attack=7, team=Team.ENEMY),
+            Character("Brute", hp=25, attack=7, team=Team.ENEMY),
+        ]
+        battle = Battle(players, enemies)
+        self.assertIs(battle.current_actor(), battle.players[0])
+        self.assertEqual(battle.players[0].name, battle.players[1].name)
+
+    def test_wrong_player_count_rejected(self) -> None:
+        players = [
+            Character("Player 1", hp=30, attack=10, team=Team.PLAYER),
+            Character("Player 2", hp=25, attack=12, team=Team.PLAYER),
+        ]
+        enemies = [
+            Character("Enemy 1", hp=25, attack=7, team=Team.ENEMY),
+            Character("Enemy 2", hp=25, attack=7, team=Team.ENEMY),
+        ]
+        with self.assertRaises(ValueError):
+            Battle(players, enemies)
+
+    def test_wrong_enemy_count_rejected(self) -> None:
+        players = [
+            Character("Player 1", hp=30, attack=10, team=Team.PLAYER),
+            Character("Player 2", hp=25, attack=12, team=Team.PLAYER),
+            Character("Player 3", hp=35, attack=8, team=Team.PLAYER),
+        ]
+        enemies = [
+            Character("Enemy 1", hp=25, attack=7, team=Team.ENEMY),
+        ]
+        with self.assertRaises(ValueError):
+            Battle(players, enemies)
+
+    def test_player_with_enemy_team_rejected(self) -> None:
+        players = [
+            Character("Player 1", hp=30, attack=10, team=Team.PLAYER),
+            Character("Player 2", hp=25, attack=12, team=Team.ENEMY),
+            Character("Player 3", hp=35, attack=8, team=Team.PLAYER),
+        ]
+        enemies = [
+            Character("Enemy 1", hp=25, attack=7, team=Team.ENEMY),
+            Character("Enemy 2", hp=25, attack=7, team=Team.ENEMY),
+        ]
+        with self.assertRaises(ValueError):
+            Battle(players, enemies)
+
+    def test_enemy_with_player_team_rejected(self) -> None:
+        players = [
+            Character("Player 1", hp=30, attack=10, team=Team.PLAYER),
+            Character("Player 2", hp=25, attack=12, team=Team.PLAYER),
+            Character("Player 3", hp=35, attack=8, team=Team.PLAYER),
+        ]
+        enemies = [
+            Character("Enemy 1", hp=25, attack=7, team=Team.PLAYER),
+            Character("Enemy 2", hp=25, attack=7, team=Team.ENEMY),
+        ]
+        with self.assertRaises(ValueError):
+            Battle(players, enemies)
+
+
 class TurnOrderTests(unittest.TestCase):
     def test_fixed_turn_order_across_round(self) -> None:
         battle = _make_battle()
@@ -72,6 +138,55 @@ class TurnOrderTests(unittest.TestCase):
         battle.attack(battle.players[0], battle.enemies[0])
         # Player 2 is skipped; next actor is Player 3.
         self.assertIs(battle.current_actor(), battle.players[2])
+
+    def test_enemy_defeated_before_turn_is_skipped(self) -> None:
+        # Players focus Enemy 1 so it dies before its turn.
+        battle = _make_battle(
+            player_stats=((30, 10), (25, 12), (35, 8)),
+            enemy_stats=((25, 7), (25, 7)),
+        )
+        battle.attack(battle.players[0], battle.enemies[0])
+        battle.attack(battle.players[1], battle.enemies[0])
+        battle.attack(battle.players[2], battle.enemies[0])
+        self.assertFalse(battle.enemies[0].is_alive)
+        self.assertIs(battle.current_actor(), battle.enemies[1])
+
+    def test_round_advances_when_last_enemy_is_defeated_before_turn(self) -> None:
+        # Enemy 2 is last in turn order. Defeat it during player turns while
+        # Enemy 1 remains alive so the battle continues into the next round.
+        battle = _make_battle(
+            player_stats=((30, 10), (25, 12), (35, 8)),
+            enemy_stats=((40, 7), (25, 7)),
+        )
+        battle.attack(battle.players[0], battle.enemies[1])
+        battle.attack(battle.players[1], battle.enemies[1])
+        battle.attack(battle.players[2], battle.enemies[1])
+        self.assertFalse(battle.enemies[1].is_alive)
+        self.assertTrue(battle.enemies[0].is_alive)
+
+        self.assertIs(battle.current_actor(), battle.enemies[0])
+        battle.attack(battle.enemies[0], battle.players[0])
+
+        self.assertEqual(battle.round_number, 2)
+        self.assertIs(battle.current_actor(), battle.players[0])
+
+    def test_surviving_actors_act_again_next_round(self) -> None:
+        battle = _make_battle()
+        battle.attack(battle.players[0], battle.enemies[0])
+        battle.attack(battle.players[1], battle.enemies[1])
+        battle.attack(battle.players[2], battle.enemies[0])
+        battle.attack(battle.enemies[0], battle.players[0])
+        battle.attack(battle.enemies[1], battle.players[1])
+
+        self.assertEqual(battle.round_number, 2)
+        self.assertIs(battle.current_actor(), battle.players[0])
+        self.assertTrue(battle.players[0].is_alive)
+
+        # Enemy 2 still has enough HP for a full attack without flooring.
+        hp_before = battle.enemies[1].hp
+        battle.attack(battle.players[0], battle.enemies[1])
+        self.assertEqual(battle.enemies[1].hp, hp_before - battle.players[0].attack)
+        self.assertIs(battle.current_actor(), battle.players[1])
 
     def test_out_of_turn_attack_rejected_without_state_change(self) -> None:
         battle = _make_battle()
@@ -115,6 +230,28 @@ class TargetingTests(unittest.TestCase):
         with self.assertRaises(InvalidActionError):
             battle.attack(battle.players[0], outsider)
         self.assertIs(battle.current_actor(), battle.players[0])
+
+    def test_invalid_action_leaves_full_battle_state_unchanged(self) -> None:
+        battle = _make_battle()
+        snapshot = (
+            battle.round_number,
+            battle.outcome,
+            battle.current_actor(),
+            [c.hp for c in battle.players],
+            [c.hp for c in battle.enemies],
+        )
+        with self.assertRaises(InvalidActionError):
+            battle.attack(battle.players[0], battle.players[1])
+        self.assertEqual(
+            (
+                battle.round_number,
+                battle.outcome,
+                battle.current_actor(),
+                [c.hp for c in battle.players],
+                [c.hp for c in battle.enemies],
+            ),
+            snapshot,
+        )
 
     def test_enemy_must_also_specify_valid_target(self) -> None:
         battle = _make_battle()
@@ -187,6 +324,22 @@ class BattleTerminationTests(unittest.TestCase):
 
         with self.assertRaises(InvalidActionError):
             battle.attack(battle.players[2], battle.enemies[0])
+
+    def test_actions_rejected_after_defeat(self) -> None:
+        battle = _make_battle(
+            player_stats=((7, 0), (0, 0), (0, 0)),
+            enemy_stats=((25, 7), (25, 7)),
+        )
+        # Player 2 and Player 3 start defeated; only Player 1 acts, then Enemy 1.
+        self.assertIs(battle.current_actor(), battle.players[0])
+        battle.attack(battle.players[0], battle.enemies[0])
+        self.assertIs(battle.current_actor(), battle.enemies[0])
+        battle.attack(battle.enemies[0], battle.players[0])
+
+        self.assertEqual(battle.outcome, BattleOutcome.DEFEAT)
+        self.assertTrue(battle.is_over)
+        with self.assertRaises(InvalidActionError):
+            battle.attack(battle.enemies[1], battle.players[0])
 
     def test_damage_clamped_when_finishing_blow_exceeds_hp(self) -> None:
         battle = _make_battle(

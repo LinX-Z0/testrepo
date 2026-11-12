@@ -14,6 +14,8 @@ class Character:
     """A combat participant with HP and a fixed attack value."""
 
     def __init__(self, name: str, hp: int, attack: int, team: Team) -> None:
+        if hp < 0:
+            raise ValueError("HP cannot be negative")
         if attack < 0:
             raise ValueError("Attack cannot be negative")
         self.name = name
