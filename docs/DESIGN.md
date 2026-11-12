@@ -48,3 +48,55 @@ These are NOT part of the initial implementation.
 - Implement features incrementally.
 - Add automated tests for core rules.
 - Do not introduce unspecified game mechanics.
+
+## Initial Implementation Decisions
+
+### Turn Order
+- Each round uses a fixed turn order:
+  Player 1, Player 2, Player 3, Enemy 1, Enemy 2.
+- Each living character may attack once per round.
+- Defeated characters skip their turns.
+- A new round begins after all eligible characters
+  have had their turn.
+- Combat ends immediately when either team is defeated.
+
+### Targeting
+- Every attack must specify a target.
+- Targets must be living characters on the opposing team.
+- Both player and enemy actions receive manually
+  specified targets for now.
+- No automatic enemy targeting or AI is required.
+
+### Combat Rules
+- Attacks deal fixed damage equal to the
+  attacker's attack stat.
+- Damage cannot be negative.
+- HP cannot fall below 0.
+- Defeated characters cannot attack.
+- Invalid actions must be rejected.
+- No critical hits, healing, shields, or randomness.
+
+### Starting Statistics
+Player 1: 30 HP, 10 attack
+Player 2: 25 HP, 12 attack
+Player 3: 35 HP, 8 attack
+
+Enemy 1: 25 HP, 7 attack
+Enemy 2: 25 HP, 7 attack
+
+These are example values for testing, not
+final game-balance decisions.
+
+### Implementation
+- Use Python 3 and standard libraries only.
+- Build reusable combat logic.
+- Use unittest for automated tests.
+- No GUI or CLI is required initially.
+- Combat actions will be supplied by test code.
+- Keep the implementation simple and modular.
+
+### Victory and Defeat
+- Victory occurs immediately when all enemies die.
+- Defeat occurs immediately when all players die.
+- Simultaneous defeat is not possible under
+  the current sequential damage rules.
