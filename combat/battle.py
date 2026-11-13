@@ -100,6 +100,38 @@ class Battle:
 
         Invalid actions raise InvalidActionError and leave state unchanged.
         """
+        self._validate_attack(attacker, target)
+
+        # All checks passed; apply damage then update battle state.
+        resolve_attack(attacker, target)
+
+        self._update_outcome()
+        if self.is_over:
+            return
+
+        self._advance_turn()
+
+    def preview_attack(
+        self, attacker: Character, target: Character
+    ) -> Dict[str, Any]:
+        """Predict an attack outcome without changing battle state.
+
+        Uses the same action validation as ``attack``. Returns damage dealt,
+        the target's predicted HP (floored at 0), and whether the target
+        would be defeated. Safe to call repeatedly with no side effects.
+        """
+        self._validate_attack(attacker, target)
+
+        damage = attacker.attack
+        target_hp_after = max(0, target.hp - damage)
+        return {
+            "damage": damage,
+            "target_hp_after": target_hp_after,
+            "would_defeat": target_hp_after == 0,
+        }
+
+    def _validate_attack(self, attacker: Character, target: Character) -> None:
+        """Shared validation for ``attack`` and ``preview_attack``."""
         if self.is_over:
             raise InvalidActionError("Battle is already over")
 
@@ -111,15 +143,6 @@ class Battle:
             )
 
         self._validate_target(attacker, target)
-
-        # All checks passed; apply damage then update battle state.
-        resolve_attack(attacker, target)
-
-        self._update_outcome()
-        if self.is_over:
-            return
-
-        self._advance_turn()
 
     def _validate_target(self, attacker: Character, target: Character) -> None:
         if target not in self._participants:
