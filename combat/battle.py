@@ -130,8 +130,18 @@ class Battle:
             "would_defeat": target_hp_after == 0,
         }
 
-    def _validate_attack(self, attacker: Character, target: Character) -> None:
-        """Shared validation for ``attack`` and ``preview_attack``."""
+    def valid_targets(self, attacker: Character) -> List[Character]:
+        """Return living opposing-team participants for the current actor.
+
+        Returns a new list of existing Character references in opposing-team
+        roster order. Does not modify battle state or select a target.
+        """
+        self._validate_current_attacker(attacker)
+        opposing = self.enemies if attacker.team == Team.PLAYER else self.players
+        return [character for character in opposing if character.is_alive]
+
+    def _validate_current_attacker(self, attacker: Character) -> None:
+        """Reject callers who are not the current actor in an ongoing battle."""
         if self.is_over:
             raise InvalidActionError("Battle is already over")
 
@@ -142,6 +152,9 @@ class Battle:
                 f"(current actor is {current.name if current else None})"
             )
 
+    def _validate_attack(self, attacker: Character, target: Character) -> None:
+        """Shared validation for ``attack`` and ``preview_attack``."""
+        self._validate_current_attacker(attacker)
         self._validate_target(attacker, target)
 
     def _validate_target(self, attacker: Character, target: Character) -> None:

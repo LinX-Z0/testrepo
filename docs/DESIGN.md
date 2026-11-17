@@ -66,6 +66,19 @@ These are NOT part of the initial implementation.
 - Both player and enemy actions receive manually
   specified targets for now.
 - No automatic enemy targeting or AI is required.
+- Callers may query legal targets with
+  Battle.valid_targets(attacker):
+  - Returns a new list of existing Character
+    references for living opposing-team participants.
+  - Preserves the opposing team's roster order.
+  - Valid only while the battle is ongoing and
+    attacker is the current actor (object identity).
+  - Raises InvalidActionError for invalid callers,
+    including after the battle has ended.
+  - Does not modify HP, turn order, round number,
+    battle outcome, or other battle state.
+  - Does not automatically select a target or
+    perform an attack.
 
 ### Combat Rules
 - Attacks deal fixed damage equal to the
