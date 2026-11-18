@@ -79,6 +79,36 @@ These are NOT part of the initial implementation.
     battle outcome, or other battle state.
   - Does not automatically select a target or
     perform an attack.
+- Callers may query legal attack options with
+  Battle.turn_options(attacker):
+  - Read-only overview of the current actor's
+    legal targets and predicted attack outcomes.
+  - Valid only while the battle is ongoing and
+    attacker is the current actor (object identity).
+  - Raises InvalidActionError for invalid callers,
+    including after the battle has ended.
+  - Returns List[Dict[str, Any]] in the same
+    opposing-team roster order as valid_targets.
+  - Each dict contains exactly: target, damage,
+    target_hp_after, and would_defeat.
+  - target is the original live Character reference
+    (same object identity as from valid_targets).
+  - damage, target_hp_after, and would_defeat match
+    preview_attack(attacker, target).
+  - Implementation reuses valid_targets and
+    preview_attack directly.
+  - Returns a fresh list and fresh dictionaries
+    on each call.
+  - An empty list is permitted if valid_targets
+    returns no targets.
+  - Does not modify HP, turn order, round number,
+    battle outcome, or other battle state.
+  - Does not automatically select a target, rank
+    options, perform an attack, or introduce new
+    mechanics.
+  - Returned Character references remain live and
+    can be mutated by callers; the query itself
+    must not mutate them.
 
 ### Combat Rules
 - Attacks deal fixed damage equal to the
