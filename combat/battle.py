@@ -140,6 +140,26 @@ class Battle:
         opposing = self.enemies if attacker.team == Team.PLAYER else self.players
         return [character for character in opposing if character.is_alive]
 
+    def turn_options(self, attacker: Character) -> List[Dict[str, Any]]:
+        """Return legal targets with predicted attack outcomes for the current actor.
+
+        Read-only overview reusing ``valid_targets`` and ``preview_attack``.
+        Returns a fresh list of fresh dictionaries in opposing-team roster
+        order. Does not modify battle state or select a target.
+        """
+        options: List[Dict[str, Any]] = []
+        for target in self.valid_targets(attacker):
+            preview = self.preview_attack(attacker, target)
+            options.append(
+                {
+                    "target": target,
+                    "damage": preview["damage"],
+                    "target_hp_after": preview["target_hp_after"],
+                    "would_defeat": preview["would_defeat"],
+                }
+            )
+        return options
+
     def _validate_current_attacker(self, attacker: Character) -> None:
         """Reject callers who are not the current actor in an ongoing battle."""
         if self.is_over:
