@@ -139,6 +139,22 @@ class TurnOrderTests(unittest.TestCase):
         # Player 2 is skipped; next actor is Player 3.
         self.assertIs(battle.current_actor(), battle.players[2])
 
+    def test_initial_turn_skips_consecutive_defeated_players(self) -> None:
+        # Players 1 and 2 start defeated; init must skip both to Player 3.
+        battle = _make_battle(player_stats=((0, 10), (0, 12), (35, 8)))
+        self.assertIs(battle.current_actor(), battle.players[2])
+        self.assertEqual(battle.round_number, 1)
+        self.assertEqual(battle.outcome, BattleOutcome.ONGOING)
+        self.assertFalse(battle.is_over)
+
+        battle.attack(battle.players[2], battle.enemies[0])
+        self.assertEqual(battle.enemies[0].hp, 17)
+        self.assertIs(battle.current_actor(), battle.enemies[0])
+        self.assertEqual(battle.round_number, 1)
+        self.assertEqual(battle.outcome, BattleOutcome.ONGOING)
+        self.assertEqual(battle.players[0].hp, 0)
+        self.assertEqual(battle.players[1].hp, 0)
+
     def test_enemy_defeated_before_turn_is_skipped(self) -> None:
         # Players focus Enemy 1 so it dies before its turn.
         battle = _make_battle(
