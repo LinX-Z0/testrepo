@@ -4,7 +4,7 @@ A small deterministic Python combat simulator. It models turn-based battles betw
 
 ## What it does
 
-Each battle has exactly three player characters and two enemy characters. A character has a name, hit points (HP), a fixed attack value, and a team (`player` or `enemy`). A character is defeated when HP reaches 0. Starting HP and attack cannot be negative.
+Each battle has exactly three player characters and two enemy characters. The `Battle` constructor requires that size and rejects any other; `create_default_battle()` uses the same composition with the example statistics below. A character has a name, hit points (HP), a fixed attack value, and a team (`player` or `enemy`). A character is defeated when HP reaches 0. Starting HP and attack cannot be negative.
 
 Combat proceeds in rounds with a fixed turn order: the player roster, then the enemy roster. For the default battle that order is Player 1, Player 2, Player 3, Enemy 1, Enemy 2. Each living character may attack once per round. Defeated characters skip their turns. A new round begins when the turn order wraps.
 
@@ -62,7 +62,13 @@ From the repository root, using Python's standard `unittest` module:
 python3 -m unittest discover -s tests
 ```
 
-The same discovery command can be run without writing bytecode caches:
+On Windows PowerShell:
+
+```powershell
+py -m unittest discover -s tests
+```
+
+On a Unix-style shell, the same discovery command can be run without writing bytecode caches:
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
