@@ -1,6 +1,7 @@
 """Independent contract tests for Battle.turn_options."""
 
 import unittest
+from unittest.mock import patch
 
 from combat.battle import Battle, BattleOutcome, create_default_battle
 from combat.combat import InvalidActionError
@@ -173,6 +174,16 @@ class TurnOptionsTests(unittest.TestCase):
         self.assertEqual(self.battle.outcome, BattleOutcome.ONGOING)
         self.battle.attack(self.battle.players[1], self.battle.enemies[1])
         self.assertEqual(self.battle.outcome, BattleOutcome.VICTORY)
+
+    def test_turn_options_returns_empty_when_valid_targets_returns_empty(self) -> None:
+        actor = self.battle.current_actor()
+        before = self.state()
+        with patch.object(self.battle, "valid_targets", return_value=[]), \
+             patch.object(self.battle, "preview_attack") as mock_preview:
+            options = self.battle.turn_options(actor)
+        self.assertEqual(options, [])
+        mock_preview.assert_not_called()
+        self.assertEqual(self.state(), before)
 
     def test_out_of_turn_player_is_rejected(self) -> None:
         self.assert_rejected(self.battle.players[1])
