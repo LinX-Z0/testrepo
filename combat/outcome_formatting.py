@@ -11,7 +11,7 @@ def format_battle_outcome(outcome: BattleOutcome) -> str:
     """Return the display label for one of the three battle outcomes."""
     labels = {
         BattleOutcome.ONGOING: "Ongoing",
-        BattleOutcome.VICTORY: "Win",
+        BattleOutcome.VICTORY: "Victory",
         BattleOutcome.DEFEAT: "Defeat",
     }
     return labels[outcome]
